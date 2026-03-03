@@ -44,7 +44,7 @@ xlsxwriter==3.1.9
 
 # Email
 python-dotenv==1.0.0
-email-validator==2.1.0
+email-validator==2.2.0
 
 # Security
 bcrypt==4.1.2
