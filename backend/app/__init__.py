@@ -19,7 +19,8 @@ mail = Mail()
 cache = Cache()
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["100 per hour"]
+    default_limits=["200 per hour"],
+    storage_uri="memory://"  # Default to memory, will be overridden by config
 )
 
 def create_app(config_name='development'):

@@ -8,10 +8,12 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && mkdir -p uploads reports logs ml_models static && python init_db.py
     startCommand: gunicorn run:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     rootDir: backend
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.4"
       - key: FLASK_ENV
         value: production
       - key: SECRET_KEY
@@ -22,6 +24,10 @@ services:
         fromDatabase:
           name: academic-ai-db
           property: connectionString
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
     autoDeploy: true

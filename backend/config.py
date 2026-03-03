@@ -4,6 +4,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def get_database_url():
+    """Get database URL, fixing Render's postgres:// to postgresql://"""
+    url = os.getenv('DATABASE_URL', 'sqlite:///academic_intelligence.db')
+    # Render uses postgres:// but SQLAlchemy requires postgresql://
+    if url.startswith('postgres://'):
+        url = url.replace('postgres://', 'postgresql://', 1)
+    return url
+
 class Config:
     """Base configuration"""
     # Flask
@@ -11,18 +19,18 @@ class Config:
     DEBUG = os.getenv('DEBUG', 'False') == 'True'
     
     # Database
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///academic_intelligence.db')
+    SQLALCHEMY_DATABASE_URI = get_database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 10,
-        'pool_recycle': 3600,
+        'pool_size': 5,
+        'pool_recycle': 1800,
         'pool_pre_ping': True
     }
     
-    # Redis
-    REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-    CACHE_TYPE = 'redis'
-    CACHE_REDIS_URL = REDIS_URL
+    # Cache - Use simple cache by default (no Redis required)
+    REDIS_URL = os.getenv('REDIS_URL')
+    CACHE_TYPE = 'redis' if os.getenv('REDIS_URL') else 'SimpleCache'
+    CACHE_REDIS_URL = os.getenv('REDIS_URL')
     CACHE_DEFAULT_TIMEOUT = int(os.getenv('CACHE_TTL', 300))
     
     # JWT
@@ -52,11 +60,11 @@ class Config:
     UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'uploads')
     ALLOWED_EXTENSIONS = set(os.getenv('ALLOWED_EXTENSIONS', 'pdf,png,jpg,jpeg,xls,xlsx,csv').split(','))
     
-    # CORS - Allow multiple ports for development
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005').split(',')
+    # CORS - Allow multiple ports for development and production domains
+    CORS_ORIGINS = [o.strip() for o in os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005').split(',') if o.strip()]
     
-    # Rate Limiting
-    RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'redis://localhost:6379/1')
+    # Rate Limiting - Use memory storage if no Redis
+    RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
     
     # Pagination
     DEFAULT_PAGE_SIZE = int(os.getenv('DEFAULT_PAGE_SIZE', 20))
@@ -99,6 +107,14 @@ class ProductionConfig(Config):
     """Production configuration"""
     DEBUG = False
     TESTING = False
+    
+    # Use simpler pool settings for production free tier
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 3,
+        'pool_recycle': 1800,
+        'pool_pre_ping': True,
+        'max_overflow': 2
+    }
 
 
 class TestingConfig(Config):
