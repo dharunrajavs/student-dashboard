@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { 
   Home, User, TrendingUp, BarChart3, MessageSquare, 
-  LogOut, Sun, Moon, Menu, Shield, Users, Search, Bell, ChevronLeft, Sparkles
+  LogOut, Sun, Moon, Menu, Shield, Users, Search, Bell, ChevronLeft, Sparkles,
+  CheckCircle, AlertTriangle, Info, X
 } from 'lucide-react';
 import './Layout.css';
 
@@ -15,7 +16,31 @@ const Layout = () => {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [notifications] = useState(3);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationList, setNotificationList] = useState([
+    { id: 1, type: 'success', title: 'Welcome!', message: 'Your account is ready to use', time: '2 min ago', read: false },
+    { id: 2, type: 'warning', title: 'Low Attendance Alert', message: 'Your attendance is below 75% in Database Management', time: '1 hour ago', read: false },
+    { id: 3, type: 'info', title: 'New Feature', message: 'AI Career Recommendations are now available', time: '1 day ago', read: false },
+  ]);
+
+  const unreadCount = notificationList.filter(n => !n.read).length;
+
+  const markAsRead = (id) => {
+    setNotificationList(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const clearNotification = (id) => {
+    setNotificationList(prev => prev.filter(n => n.id !== id));
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'success': return <CheckCircle size={16} className="notif-icon success" />;
+      case 'warning': return <AlertTriangle size={16} className="notif-icon warning" />;
+      case 'info': return <Info size={16} className="notif-icon info" />;
+      default: return <Info size={16} className="notif-icon" />;
+    }
+  };
 
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: Home },
@@ -121,12 +146,65 @@ const Layout = () => {
 
           <div className="navbar-right">
             {/* Notifications */}
-            <button className="navbar-btn notification-btn">
-              <Bell size={20} />
-              {notifications > 0 && (
-                <span className="notification-badge">{notifications}</span>
+            <div className="notification-wrapper">
+              <button 
+                className="navbar-btn notification-btn"
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  setShowProfileMenu(false);
+                }}
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="notification-badge">{unreadCount}</span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="notification-dropdown">
+                  <div className="notification-header">
+                    <h4>Notifications</h4>
+                    {unreadCount > 0 && (
+                      <button 
+                        className="mark-all-read"
+                        onClick={() => setNotificationList(prev => prev.map(n => ({ ...n, read: true })))}
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="notification-list">
+                    {notificationList.length > 0 ? (
+                      notificationList.map(notif => (
+                        <div 
+                          key={notif.id} 
+                          className={`notification-item ${notif.read ? 'read' : 'unread'}`}
+                          onClick={() => markAsRead(notif.id)}
+                        >
+                          {getNotificationIcon(notif.type)}
+                          <div className="notification-content">
+                            <span className="notification-title">{notif.title}</span>
+                            <span className="notification-message">{notif.message}</span>
+                            <span className="notification-time">{notif.time}</span>
+                          </div>
+                          <button 
+                            className="notification-close"
+                            onClick={(e) => { e.stopPropagation(); clearNotification(notif.id); }}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="no-notifications">
+                        <Bell size={32} />
+                        <p>No notifications</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
 
             {/* Profile */}
             <div className="profile-menu-wrapper">
